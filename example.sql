@@ -53,8 +53,8 @@ flows AS (
         block_date,
         contract_address,
         CASE
-            WHEN "from" = 0x0000000000000000000000000000000000000000 THEN amount
-            WHEN "to"   = 0x0000000000000000000000000000000000000000 THEN -amount
+            WHEN "from" = 0x0000000000000000000000000000000000000000 THEN (CAST(amount AS DOUBLE) / 1e18)
+            WHEN "to"   = 0x0000000000000000000000000000000000000000 THEN -(CAST(amount AS DOUBLE) / 1e18)
             ELSE 0
         END AS net_amount
     FROM tokens.transfers
@@ -213,13 +213,13 @@ LIMIT 100
 
 SELECT
     CASE
-        WHEN amount <= 5 THEN '1. Coffee (<$5)'
-        WHEN amount <= 50 THEN '2. Lunch ($5-$50)'
-        WHEN amount <= 500 THEN '3. Retail ($50-$500)'
+        WHEN (amount / 1e18) <= 5 THEN '1. Coffee (<$5)'
+        WHEN (amount / 1e18) <= 50 THEN '2. Lunch ($5-$50)'
+        WHEN (amount / 1e18) <= 500 THEN '3. Retail ($50-$500)'
         ELSE '4. Wholesale/Whale (>$500)'
     END as payment_tier,
     COUNT(*) as transaction_count,
-    SUM(amount) as total_volume
+    ROUND(SUM(amount / 1e18), 2) as total_volume
 FROM tokens.transfers
 WHERE blockchain = 'tempo'
   AND block_time >= NOW() - INTERVAL '7' DAY
@@ -235,7 +235,7 @@ SELECT
     DATE_TRUNC('day', evt_block_time) as day,
     'Standard Transfer' as transfer_type,
     COUNT(*) as transactions
-FROM tip20_tempo.TIP20_evt_Transfer
+FROM tip20_tempo.evt_transfer
 WHERE evt_block_time >= NOW() - INTERVAL '30' DAY
 GROUP BY 1, 2
 
@@ -245,7 +245,7 @@ SELECT
     DATE_TRUNC('day', evt_block_time) as day,
     'Invoice (TransferWithMemo)' as transfer_type,
     COUNT(*) as transactions
-FROM tip20_tempo.TIP20_evt_TransferWithMemo
+FROM tip20_tempo.evt_transferwithmemo
 WHERE evt_block_time >= NOW() - INTERVAL '30' DAY
 GROUP BY 1, 2
 ORDER BY 1 DESC, 2
