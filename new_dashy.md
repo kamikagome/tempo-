@@ -18,9 +18,15 @@
 
 ## Query 1 — The Heartbeat Heatmap
 
-**Visualization:** Heatmap — X axis = Hour UTC (0–23), Y axis = Day of week (Mon–Sun), Color = tx_count
+**Visualization:** Line chart (Dune setup):
+1. Add visualization → **Line chart**
+2. X Column → `hour_utc`
+3. Y Column 1 → `tx_count`
+4. **Group by** → `day_name` _(Dune will auto-split into 7 lines: Mon–Sun)_
+5. Enable **Show data labels** off, enable **Show dots** off for a cleaner read
+6. Rename chart title to "Transaction Activity by Hour & Day of Week"
 
-**Insight:** Monday 15–16 UTC and the Tue 22 → Wed 00 UTC corridor are the hottest cells. The Tue/Wed midnight window (176k–280k txs vs ~31k baseline) is a 9x burst that tells the story of a single high-volume event — the network's first visible pulse moment.
+**Insight:** Monday 15–16 UTC and the Tue 22 → Wed 00 UTC corridor are the sharpest peaks. The Tue/Wed midnight window (176k–280k txs vs ~31k baseline) is a 9x burst that tells the story of a single high-volume event — the network's first visible pulse moment.
 
 ```sql
 SELECT 
@@ -55,7 +61,7 @@ ORDER BY 1, 3
 
 ## Query 2 — The Timezone Fingerprint
 
-**Visualization:** Bar chart — X axis = 3-hour UTC window label, Y axis left = tx_count, Y axis right = unique_senders
+**Visualization:** Bar chart — X Column = `utc_window_start`, Y Column = `tx_count`. Add a second bar chart below using the same query with Y Column = `unique_senders` to compare volume vs human activity side by side (Dune doesn't support dual Y axes).
 
 **Insight:** 15:00–17:59 UTC is the human capital of the network — highest unique senders (16,707) and highest fees ($3,479). The 21:00–02:59 UTC windows have *more transactions* but far fewer unique senders, revealing automated/programmatic activity. This is the clearest evidence of Tempo's two-speed economy.
 
@@ -120,7 +126,7 @@ ORDER BY 1
 
 ## Query 4 — The Burst Detector
 
-**Visualization:** Line chart — hourly tx_count overlaid with rolling_avg_24h; BURST rows highlighted in red, QUIET in blue
+**Visualization:** Line chart — X Column = `hour`, Y Columns = `tx_count` and `rolling_avg_24h` as two series. In Dune, select both columns as Y series to overlay actual vs rolling average. Use a separate Table visualization beneath it to highlight BURST/QUIET rows (Dune can't conditionally color line chart points).
 
 **Insight:** Tempo's bursts are real events, not noise. April 4 at 15:00 UTC hit a z-score of **13.21** — 13 standard deviations above the 24h rolling average. The burst pattern repeats at 14–16 UTC (US morning), suggesting these spikes are user-driven events (launches, incentive programs, announcements) rather than automated flooding.
 
@@ -208,9 +214,9 @@ ORDER BY 1, 2
 
 ## Query 6 — The Memo Pulse *(Twist: Option C)*
 
-**Visualization:** Dual line chart — Standard transfers vs Invoice/Memo transfers by hour (log scale recommended)
+**Visualization:** Line chart — X Column = `hour_utc`, Y Column = `tx_count`, Group by = `transfer_type` (Dune will plot two lines automatically). Enable logarithmic Y axis — the two series differ by ~100x so log scale is essential to see the memo line clearly.
 
-**Insight:** This is the most revealing chart. Standard transfers swing wildly (600k at hour 0 vs 60k at hour 10), but **memo transfers are nearly flat at 2,500–5,200/hour around the clock**. Invoice payments don't follow business hours. They're batched, automated, and represent a committed B2B cohort that operates independently of the network's general rhythm. At off-peak hours (10 UTC), memo txs represent **2.8% of standard** — at peak (22–23 UTC), they're **<0.9%**. The swing in standard transfers (600k at hour 0 vs ~76k at hour 10) makes the memo layer's steadiness even more striking.
+**Insight:** This is the most revealing chart. Standard transfers swing wildly (600k at hour 0 vs ~76k at hour 10), but **memo transfers are nearly flat at 2,500–5,200/hour around the clock**. Invoice payments don't follow business hours. They're batched, automated, and represent a committed B2B cohort that operates independently of the network's general rhythm. At off-peak hours (10 UTC), memo txs represent **2.8% of standard** — at peak (22–23 UTC), they're **<0.9%**. The swing in standard transfers (600k at hour 0 vs ~76k at hour 10) makes the memo layer's steadiness even more striking.
 
 ```sql
 WITH standard_txs AS (
@@ -256,7 +262,7 @@ ORDER BY 1, 2
 
 ## Query 7 — The Always-On Index
 
-**Visualization:** Bar chart — X axis = hour_utc (0–23), Y axis = actual_pct, reference line at 4.167% (perfectly flat baseline), bars colored by activity_band
+**Visualization:** Bar chart — X Column = `hour_utc`, Y Column = `actual_pct`. Add a second series using `always_on_baseline_pct` to show the flat 4.167% baseline as a line overlay (set that series to Line type in Dune's mixed chart mode). Dune doesn't support conditional bar coloring, so the `activity_band` column is best surfaced in a companion Table viz.
 
 **Insight:** If Tempo were perfectly "always on" like a pure utility network, every hour would carry exactly 4.167% of daily volume. The reality: Tempo scores an **Always-On coefficient of 0.83** (min hour / baseline = 3.455% / 4.167%). Its quietest hour (19 UTC) is still 83% of what a perfectly flat 24/7 network would show. For comparison, traditional banking essentially flatlines at night. The two "Peak" hours (0 UTC and 23 UTC) are actually driven by that large burst event — strip it out and the network is remarkably flat.
 
@@ -331,7 +337,7 @@ ORDER BY h.hour_utc
 > That's what real payment infrastructure looks like."
 
 ### Post 5 — The Burst
-> "Yesterday at 15:00 UTC, Tempo hit a z-score of 13.21.
+> "On April 4 at 15:00 UTC, Tempo hit a z-score of 13.21.
 > That's 13 standard deviations above its 24h average.
 > Something happened. The chain captured it. The data is on-chain forever.
 > This is why blockchains matter for payments — immutable event logs."
@@ -349,3 +355,21 @@ ORDER BY h.hour_utc
 
 > **Note on saving to Dune:** Saving queries (`dune query create`) requires a Dune paid plan.
 > Paste any query above directly into [dune.com/queries/new](https://dune.com/queries/new) to save it to your account.
+
+---
+
+## Query Summaries
+
+**[Query 1 — The Heartbeat Heatmap](#query-1--the-heartbeat-heatmap):** Monday 15–16 UTC and the Tue→Wed midnight corridor are Tempo's hottest windows, with a 9x burst above baseline.
+
+**[Query 2 — The Timezone Fingerprint](#query-2--the-timezone-fingerprint):** The 15–18 UTC window has the most unique human senders (16,707), while 21–03 UTC runs on automation with 5x fewer wallets firing 4x more transactions.
+
+**[Query 3 — The Weekend Test](#query-3--the-weekend-test):** Weekends see 16% less volume and 33% fewer users, but fees are 30% higher — the chain doesn't sleep, but the market prices it differently.
+
+**[Query 4 — The Burst Detector](#query-4--the-burst-detector):** A rolling z-score flags genuine activity events; April 4 at 15:00 UTC hit **z = 13.21**, 13 standard deviations above normal.
+
+**[Query 5 — Payment Tier Rhythm](#query-5--payment-tier-rhythm):** Nearly all transactions are micro-tier (<$5), but the handful of retail-sized payments only appear during EU/US business hours — timezone-aware and human-driven.
+
+**[Query 6 — The Memo Pulse](#query-6--the-memo-pulse-twist-option-c):** Invoice/memo transfers hold flat at ~3,500/hour regardless of time, while standard transfers swing 8x — a quiet, automated B2B layer running independently of the network's rhythm.
+
+**[Query 7 — The Always-On Index](#query-7--the-always-on-index):** Tempo's quietest hour is still 83% of a perfectly flat 24/7 baseline — an Always-On coefficient no traditional payment network comes close to.
