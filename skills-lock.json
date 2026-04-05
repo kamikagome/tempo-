@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "dune": {
+      "source": "duneanalytics/skills",
+      "sourceType": "github",
+      "computedHash": "cf78252a837f41e0d0a9b1b2db57ae48a1eba0928841fed6d2de3f4b49b3c761"
+    },
+    "sim": {
+      "source": "duneanalytics/skills",
+      "sourceType": "github",
+      "computedHash": "dc1def3e40f052927118f848ec868bdf15f4d63dc41255a7bd1f6ea0882e0cb4"
+    }
+  }
+}
