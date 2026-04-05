@@ -96,7 +96,7 @@ ORDER BY 1
 
 ## Query 3 — The Weekend Test
 
-**Visualization:** 2-bar grouped chart — Weekday vs Weekend for tx_count, unique_users, avg_fee_usd
+**Visualization:** Use 3 separate Bar charts from the same query — one per metric (Dune supports one Y column per chart). X Column = `day_type` for each: (1) Y = `tx_count`, (2) Y = `unique_users`, (3) Y = `avg_fee_usd`.
 
 **Insight:** Tempo is NOT a Monday-to-Friday network. Weekend daily volume is only 16% lower than weekdays. But weekends cost 30% more per transaction — demand compresses, fees rise. Classic price discovery behavior.
 
@@ -181,23 +181,24 @@ ORDER BY hour DESC
 
 **Visualization:** Stacked area chart — X axis = hour_utc, Y axis = tx_count, stacked by payment_tier
 
-**Insight:** Tempo is currently dominated by micro-transactions (<$5) across all hours. The only retail-tier ($50–$500) activity appears during EU/US overlap hours (11–20 UTC), suggesting larger payments are human-initiated and timezone-aware. The chain's commercial layer is embryonic but geographically anchored.
+**Insight:** Tempo is currently dominated by micro-transactions (<$0.50) across all hours. The only retail-tier ($50–$500) activity appears during EU/US overlap hours (11–20 UTC), suggesting larger payments are human-initiated and timezone-aware. The chain's commercial layer is embryonic but geographically anchored.
 
 ```sql
 SELECT
     hour(block_time) AS hour_utc,
     CASE
-        WHEN (CAST(amount AS DOUBLE) / 1e18) <= 5 THEN '1. Micro (<$5)'
-        WHEN (CAST(amount AS DOUBLE) / 1e18) <= 50 THEN '2. Coffee ($5-$50)'
-        WHEN (CAST(amount AS DOUBLE) / 1e18) <= 500 THEN '3. Retail ($50-$500)'
-        ELSE '4. Wholesale (>$500)'
+        WHEN amount_usd <= 0.5  THEN '1. Micro (<$0.50)'
+        WHEN amount_usd <= 5    THEN '2. Coffee ($0.50-$5)'
+        WHEN amount_usd <= 50   THEN '3. Lunch ($5-$50)'
+        WHEN amount_usd <= 500  THEN '4. Retail ($50-$500)'
+        ELSE '5. Wholesale (>$500)'
     END AS payment_tier,
     COUNT(*) AS tx_count,
-    ROUND(SUM(CAST(amount AS DOUBLE) / 1e18), 2) AS total_volume_usd
+    ROUND(SUM(amount_usd), 2) AS total_volume_usd
 FROM tokens.transfers
 WHERE blockchain = 'tempo'
   AND block_time >= NOW() - INTERVAL '30' DAY
-  AND amount > 0
+  AND amount_usd > 0
   AND "from" != 0x0000000000000000000000000000000000000000
   AND "to" != 0x0000000000000000000000000000000000000000
 GROUP BY 1, 2
@@ -205,10 +206,10 @@ ORDER BY 1, 2
 ```
 
 **Key findings:**
-- Virtually all volume is Micro-tier — the network is in early adoption / testnet-adjacent behavior
-- Retail-tier txs appear only at hours 11, 12, 18, 19, 20 UTC (EU business / US business hours overlap)
-- Hour 0 UTC: 591k micro txs vs only 2 retail — a pure machine window
-- Hour 16 UTC: 162k micro + isolated retail txs — the human layer enters
+- Virtually all volume is Micro-tier (<$0.50) — the network is in early adoption / testnet-adjacent behavior
+- Retail-tier txs ($50–$500) appear only during EU/US business hours — timezone-aware and human-driven
+- Off-peak UTC hours (0–04) are pure machine windows; micro txs dominate with near-zero retail presence
+- The human layer becomes visible at 15–18 UTC where retail-tier activity clusters
 
 ---
 
@@ -368,7 +369,7 @@ ORDER BY h.hour_utc
 
 **[Query 4 — The Burst Detector](#query-4--the-burst-detector):** A rolling z-score flags genuine activity events; April 4 at 15:00 UTC hit **z = 13.21**, 13 standard deviations above normal.
 
-**[Query 5 — Payment Tier Rhythm](#query-5--payment-tier-rhythm):** Nearly all transactions are micro-tier (<$5), but the handful of retail-sized payments only appear during EU/US business hours — timezone-aware and human-driven.
+**[Query 5 — Payment Tier Rhythm](#query-5--payment-tier-rhythm):** Nearly all transactions are micro-tier (<$0.50), but retail-sized payments ($50–$500) only appear during EU/US business hours — timezone-aware and human-driven.
 
 **[Query 6 — The Memo Pulse](#query-6--the-memo-pulse-twist-option-c):** Invoice/memo transfers hold flat at ~3,500/hour regardless of time, while standard transfers swing 8x — a quiet, automated B2B layer running independently of the network's rhythm.
 

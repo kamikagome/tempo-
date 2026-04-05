@@ -213,17 +213,17 @@ LIMIT 100
 
 SELECT
     CASE
-        WHEN (amount / 1e18) <= 5 THEN '1. Coffee (<$5)'
-        WHEN (amount / 1e18) <= 50 THEN '2. Lunch ($5-$50)'
-        WHEN (amount / 1e18) <= 500 THEN '3. Retail ($50-$500)'
-        ELSE '4. Wholesale/Whale (>$500)'
+        WHEN amount_usd <= 0.5  THEN '1. Micro (<$0.50)'
+        WHEN amount_usd <= 5    THEN '2. Coffee ($0.50-$5)'
+        WHEN amount_usd <= 50   THEN '3. Lunch ($5-$50)'
+        WHEN amount_usd <= 500  THEN '4. Retail ($50-$500)'
+        ELSE '5. Wholesale/Whale (>$500)'
     END as payment_tier,
     COUNT(*) as transaction_count,
-    ROUND(SUM(amount / 1e18), 2) as total_volume
+    ROUND(SUM(amount_usd), 2) as total_volume
 FROM tokens.transfers
 WHERE blockchain = 'tempo'
-  AND block_time >= NOW() - INTERVAL '7' DAY
-  AND amount > 0
+  AND amount_usd > 0
   AND "from" != 0x0000000000000000000000000000000000000000 -- Exclude Mints
   AND "to" != 0x0000000000000000000000000000000000000000 -- Exclude Burns
 GROUP BY 1
