@@ -25,14 +25,15 @@ This workspace serves as a scratchpad and data exploration repository for resear
 The queries currently built and available inside `example.sql` are strictly optimized with partition pruning to handle large datasets effectively on Dune Analytics.
 
 1. **Stablecoin Supply Growth**: Tracks the net daily change and cumulative supply of Tempo fee-paying stablecoins, pulling from tokens metadata and transfers.
-2. **Transactions Per Second (TPS)**: Analyzes network throughput down to the hourly level to observe spikes in volume.
-3. **Transaction Costs**: Calculates the median and average gas fees across transactions, correctly converting stablecoin-denominated gas to human readable dollars.
-4. **Unique Users & Cohort Tracking**: Segregates Daily Active Users (DAU) into "Net New" versus "Returning" to measure retention of the overall chain.
-5. **Top Protocol Leaderboard**: Ranks the top 100 contracts interactively by their total gas spent, transactions captured, and unique origin users over the last 7 days.
+2. **Hourly Transaction Counts**: Counts transactions per hour to observe activity patterns and spikes in volume.
+3. **Transactions Per Second (TPS)**: Analyzes network throughput at the hourly level to measure peak throughput.
+4. **Transaction Costs**: Calculates the median and average gas fees across transactions, correctly converting stablecoin-denominated gas to human readable dollars.
+5. **Unique Users & Cohort Tracking**: Segregates Daily Active Users (DAU) into "Net New" versus "Returning" to measure retention of the overall chain.
+6. **Top Protocol Leaderboard**: Ranks the top 100 contracts interactively by their total gas spent, transactions captured, and unique origin users over the last 7 days.
 
 ## Operating Procedures
 Since this repository relies heavily on Dune Analytics:
-1. Ensure you have the `dune` CLI integrated (or use `.env` provided API keys).
-2. When creating new queries on `tempo.transactions` or `tempo.traces`, **always use partition pruning** (`block_time >= NOW() - INTERVAL 'X' DAY`).
+1. Ensure you have the `dune` CLI integrated and authenticated via `dune auth` or by setting the `DUNE_API_KEY` environment variable.
+2. When creating new queries on `tempo.transactions` or `tempo.traces`, **always use partition pruning** (`block_date >= CURRENT_DATE - INTERVAL '7' DAY`).
 3. Be mindful of bigint overflows by casting integer rows to `DOUBLE` before computing large sums (`gas_price`, `gas_used`).
 4. Read the `CLAUDE.md` instructions before operating or creating new SQL files. 
